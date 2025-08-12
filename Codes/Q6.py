@@ -19,7 +19,17 @@ plt.show()
 # Usually, the 'Value' or 'Saturation' plane helps isolate foreground by thresholding.
 # Let's try thresholding on 'Value' channel using Otsu's method
 
-_, mask = cv2.threshold(v, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+_, mask = cv2.threshold(s, 12, 255, cv2.THRESH_BINARY)
+
+foreground = cv2.bitwise_and(img, img, mask=mask)
+
+
+plt.figure(figsize=(10, 5))
+
+plt.imshow(cv2.cvtColor(foreground, cv2.COLOR_BGR2RGB))
+plt.title('Extracted Foreground', fontsize=18)
+plt.axis('off')
+plt.show()
 
 plt.figure()
 plt.title('Foreground Mask')
@@ -28,7 +38,7 @@ plt.axis('off')
 plt.show()
 
 # (c) Obtain foreground only using bitwise_and
-foreground = cv2.bitwise_and(img, img, mask=mask)
+
 
 # Compute histogram of foreground in grayscale (for simplicity, convert foreground to grayscale)
 foreground_gray = cv2.cvtColor(foreground, cv2.COLOR_BGR2GRAY)

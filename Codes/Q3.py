@@ -9,7 +9,7 @@ L, a, b = cv2.split(img_lab)
 
 # Normalize L channel and apply gamma correction
 L_norm = L / 255.0
-gamma = 1.5
+gamma = 0.5
 L_gamma = np.power(L_norm, gamma)
 L_corrected = np.uint8(L_gamma * 255)
 

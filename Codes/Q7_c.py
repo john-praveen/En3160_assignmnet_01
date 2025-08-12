@@ -1,85 +1,45 @@
-import cv2
+import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 
-def convolve_1d_vertical(img, kernel):
-    """1D vertical convolution (correlation, no kernel flip) with zero-padding."""
-    k = len(kernel)
-    pad = k // 2
-    padded = np.pad(img, ((pad, pad), (0, 0)), mode='constant', constant_values=0)
-    h, w = img.shape
-    output = np.zeros_like(img, dtype=np.float32)
+# Read grayscale image
+img = cv.imread('images/einstein.png', cv.IMREAD_GRAYSCALE)
 
-    for i in range(h):
-        for j in range(w):
-            val = 0
-            for ki in range(k):
-                val += kernel[ki] * padded[i + ki, j]
-            output[i, j] = val
-    return output
+# 1D Sobel kernels (separable form)
+kx = np.array([[1, 0, -1]], dtype=np.float32)    # horizontal derivative
+ky = np.array([[1], [2], [1]], dtype=np.float32) # vertical smoothing
 
-def convolve_1d_horizontal(img, kernel):
-    """1D horizontal convolution (correlation, no kernel flip) with zero-padding."""
-    k = len(kernel)
-    pad = k // 2
-    padded = np.pad(img, ((0, 0), (pad, pad)), mode='constant', constant_values=0)
-    h, w = img.shape
-    output = np.zeros_like(img, dtype=np.float32)
+# For Sobel Y, the order is reversed:
+kx_y = np.array([[1], [0], [-1]], dtype=np.float32) # vertical derivative
+ky_y = np.array([[1, 2, 1]], dtype=np.float32)      # horizontal smoothing
 
-    for i in range(h):
-        for j in range(w):
-            val = 0
-            for kj in range(k):
-                val += kernel[kj] * padded[i, j + kj]
-            output[i, j] = val
-    return output
+# --- Sobel X ---
+temp_x = cv.filter2D(img, cv.CV_32F, kx)     # horizontal derivative
+sobel_x = cv.filter2D(temp_x, cv.CV_32F, ky) # vertical smoothing
 
-# Load grayscale image
-img = cv2.imread('images/einstein.png', cv2.IMREAD_GRAYSCALE)
+# --- Sobel Y ---
+temp_y = cv.filter2D(img, cv.CV_32F, ky_y)   # horizontal smoothing
+sobel_y = cv.filter2D(temp_y, cv.CV_32F, kx_y) # vertical derivative
 
-# Sobel X separable kernels (matches your 2D kernel)
-vertical_kernel_x = np.array([1, 2, 1], dtype=np.float32)
-horizontal_kernel_x = np.array([1, 0, -1], dtype=np.float32)
 
-# Sobel Y separable kernels
-vertical_kernel_y = np.array([1, 0, -1], dtype=np.float32)
-horizontal_kernel_y = np.array([1, 2, 1], dtype=np.float32)
-
-# Compute Sobel X
-intermediate_x = convolve_1d_vertical(img, vertical_kernel_x)
-sobel_x = convolve_1d_horizontal(intermediate_x, horizontal_kernel_x)
-
-# Compute Sobel Y
-intermediate_y = convolve_1d_vertical(img, vertical_kernel_y)
-sobel_y = convolve_1d_horizontal(intermediate_y, horizontal_kernel_y)
-
-# Compute gradient magnitude
-grad_mag = np.sqrt(sobel_x**2 + sobel_y**2)
-
-# Normalize for display (0-255)
-def normalize_img(img):
-    img_norm = (img - img.min()) / (img.max() - img.min()) * 255
-    return img_norm.astype(np.uint8)
-
-sobel_x_norm = normalize_img(sobel_x)
-sobel_y_norm = normalize_img(sobel_y)
-grad_mag_norm = normalize_img(grad_mag)
 
 # Display results
-plt.figure(figsize=(18,6))
-plt.subplot(1,3,1)
-plt.title('Sobel X')
-plt.imshow(sobel_x_norm, cmap='gray')
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 3, 1)
+plt.imshow(img, cmap='gray')
+plt.title("Original")
 plt.axis('off')
 
-plt.subplot(1,3,2)
-plt.title('Sobel Y')
-plt.imshow(sobel_y_norm, cmap='gray')
+plt.subplot(1, 3, 2)
+plt.imshow(sobel_x, cmap='gray')
+plt.title("Sobel X (Separable)")
 plt.axis('off')
 
-plt.subplot(1,3,3)
-plt.title('Gradient Magnitude')
-plt.imshow(grad_mag_norm, cmap='gray')
+plt.subplot(1, 3, 3)
+plt.imshow(sobel_y, cmap='gray')
+plt.title("Sobel Y (Separable)")
 plt.axis('off')
 
+plt.tight_layout()
 plt.show()

@@ -1,63 +1,49 @@
-import cv2
+import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Load image
-img = cv2.imread('images/daisy.jpg')
-img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+daisy = cv.imread('images/daisy.jpg')
+assert daisy is not None
 
-# Initialize mask, bgdModel and fgdModel required by grabCut
-mask = np.zeros(img.shape[:2], np.uint8)
-bgdModel = np.zeros((1,65), np.float64)
-fgdModel = np.zeros((1,65), np.float64)
+mask = np.zeros(daisy.shape[:2], np.uint8)
+bgdModel = np.zeros((1, 65), np.float64)
+fgdModel = np.zeros((1, 65), np.float64)
 
-# Rectangle around the foreground (manually set or computed)
-rect = (30, 30, img.shape[1]-60, img.shape[0]-60)
+rect = (50, 100, 550, 490)
+cv.grabCut(daisy, mask, rect, bgdModel, fgdModel, 5, cv.GC_INIT_WITH_RECT)
 
-# Apply GrabCut with rectangle mode
-cv2.grabCut(img, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
 
-# Convert mask such that probable foreground and foreground pixels are 1, rest 0
-grabcut_mask = np.where((mask==2) | (mask==0), 0, 1).astype('uint8')
+foreground = daisy * mask2[:, :, np.newaxis]
+background = cv.subtract(daisy, foreground)
 
-# Extract foreground and background images using mask
-foreground = img_rgb * grabcut_mask[:, :, np.newaxis]
-background = img_rgb * (1 - grabcut_mask[:, :, np.newaxis])
+fig, axs = plt.subplots(1, 3, figsize=(12, 6))
+axs[0].imshow(mask2, cmap='gray')
+axs[0].set_title('Segmentation Mask')
+axs[0].axis('off')
 
-# Display results
-plt.figure(figsize=(12,6))
-plt.subplot(1,3,1)
-plt.title('GrabCut Mask')
-plt.imshow(grabcut_mask, cmap='gray')
-plt.axis('off')
+axs[1].imshow(cv.cvtColor(foreground, cv.COLOR_BGR2RGB))
+axs[1].set_title('Foreground Image')
+axs[1].axis('off')
 
-plt.subplot(1,3,2)
-plt.title('Foreground')
-plt.imshow(foreground)
-plt.axis('off')
+axs[2].imshow(cv.cvtColor(background, cv.COLOR_BGR2RGB))
+axs[2].set_title('Background Image')
+axs[2].axis('off')
 
-plt.subplot(1,3,3)
-plt.title('Background')
-plt.imshow(background)
-plt.axis('off')
+plt.tight_layout()
 plt.show()
 
+blurred_background = cv.GaussianBlur(background, (25, 25), 3)
+blurred = cv.add(foreground, blurred_background)
 
-# Blur the background image
-background_blurred = cv2.GaussianBlur(background, (21, 21), sigmaX=0)
+fig, axs = plt.subplots(1, 2, figsize=(10, 8))
+axs[0].imshow(cv.cvtColor(daisy, cv.COLOR_BGR2RGB))
+axs[0].set_title('Original')
+axs[0].axis('off')
 
-# Combine blurred background with sharp foreground
-enhanced_img = background_blurred + foreground
+axs[1].imshow(cv.cvtColor(blurred, cv.COLOR_BGR2RGB))
+axs[1].set_title('Background blurred image')
+axs[1].axis('off')
 
-# Display original and enhanced images
-plt.figure(figsize=(12,6))
-plt.subplot(1,2,1)
-plt.title('Original Image')
-plt.imshow(img_rgb)
-plt.axis('off')
-
-plt.subplot(1,2,2)
-plt.title('Enhanced Image (Blurred Background)')
-plt.imshow(enhanced_img.astype(np.uint8))
-plt.axis('off')
+plt.tight_layout()
 plt.show()
